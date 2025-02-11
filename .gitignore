@@ -1,0 +1,7 @@
+.venv
+tmp
+.env
+__pycache__
+.pytest_cache
+fixtures
+.DS_Store
