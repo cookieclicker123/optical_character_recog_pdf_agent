@@ -35,4 +35,8 @@ GROQ_API_KEY='your-api-key-here'
 
 ```bash
 pytest tests/test_mock_OCR.py
+pytest tests/test_OCR.py
+pytest tests/test_mock_llm_information_grouping.py
+pytest tests/test_llm_information_grouping.py
+pytest tests/test_groq_basic.py
 ```
