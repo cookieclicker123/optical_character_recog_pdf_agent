@@ -1,7 +1,7 @@
 from enum import Enum
 from pathlib import Path
-from typing import Optional, List, Callable, Dict, Any, Annotated
-from pydantic import BaseModel, Field, PositiveFloat, PositiveInt, constr
+from typing import Optional, List, Callable, Dict, Any
+from pydantic import BaseModel, Field, PositiveFloat, PositiveInt
 from datetime import datetime
 
 class DocumentType(Enum):
