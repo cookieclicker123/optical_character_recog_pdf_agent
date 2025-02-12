@@ -33,25 +33,56 @@ def setup_ocr_pipeline(input_dir: Path, output_dir: Path) -> OcrFn:
             # Start timing
             start_time = time.time()
             
-            # Simulate processing time (reduced from 2.0 to 0.5)
+            # Simulate processing time
             time.sleep(0.5)
             
             # Generate unique document ID
             doc_id = f"DOC_{uuid.uuid4().hex[:8]}"
             
-            # Create output path and mock text
+            # Determine document type from filename
+            is_post = "post" in input_path.name.lower()
+            doc_type = DocumentType.POST if is_post else DocumentType.INVOICE
+            
+            # Create output path and mock text based on document type
             output_path = output_dir / f"{doc_id}.txt"
-            mock_text = f"""
-            Invoice #{doc_id}
-            Date: 2024-03-10
             
-            Item 1: $100.00
-            Item 2: $150.00
+            if doc_type == DocumentType.POST:
+                mock_text = f"""
+                Sehr geehrte Damen und Herren,
+                
+                Ich schreibe Ihnen bezüglich #{doc_id}.
+                Das Wetter ist heute schön.
+                
+                Mit freundlichen Grüßen,
+                Hans Schmidt
+                """
+                # Mock translation data
+                source_language = "de"
+                translated_text = f"""
+                Dear Sir or Madam,
+                
+                I am writing to you regarding #{doc_id}.
+                The weather is nice today.
+                
+                Best regards,
+                Hans Schmidt
+                """
+                translation_confidence = 0.92
+            else:
+                mock_text = f"""
+                Invoice #{doc_id}
+                Date: 2024-03-10
+                
+                Item 1: $100.00
+                Item 2: $150.00
+                
+                Total: $250.00
+                """
+                source_language = None
+                translated_text = None
+                translation_confidence = None
             
-            Total: $250.00
-            """
-            
-            # Actually write the output file
+            # Write the output file
             output_path.write_text(mock_text)
             
             # Calculate processing time
@@ -61,11 +92,14 @@ def setup_ocr_pipeline(input_dir: Path, output_dir: Path) -> OcrFn:
                 document_id=doc_id,
                 input_path=input_path,
                 output_path=output_path,
-                document_type=DocumentType.INVOICE,
+                document_type=doc_type,
                 processing_status=ProcessingStatus.COMPLETED,
                 raw_text=mock_text,
                 confidence_score=0.95,
-                processing_time=processing_time
+                processing_time=processing_time,
+                source_language=source_language,
+                translated_text=translated_text,
+                translation_confidence=translation_confidence
             )
             
         except Exception as e:

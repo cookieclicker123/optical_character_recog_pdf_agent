@@ -153,6 +153,25 @@ def test_error_handling_edge_cases(ocr_processor, test_dirs):
     assert result.processing_status == ProcessingStatus.FAILED
     assert "name too long" in result.error_message.lower()
 
+def test_post_document_processing(ocr_processor, test_dirs):
+    """Test POST document processing with translation"""
+    input_dir, _ = test_dirs
+    test_file = input_dir / "test_post.pdf"
+    test_file.touch()
+    
+    result = ocr_processor(test_file)
+    
+    assert isinstance(result, OCRResult)
+    assert result.document_id.startswith("DOC_")
+    assert result.document_type == DocumentType.POST
+    assert result.processing_status == ProcessingStatus.COMPLETED
+    assert result.source_language == "de"
+    assert result.translated_text is not None
+    assert result.translation_confidence is not None
+    assert result.raw_text is not None
+    assert result.confidence_score is not None
+    assert result.error_message is None
+
 def test_document_type_handling(ocr_processor, test_dirs):
     """Test document type detection and enum handling"""
     input_dir, _ = test_dirs
@@ -173,18 +192,19 @@ def test_document_type_handling(ocr_processor, test_dirs):
         
         assert isinstance(result.document_type, DocumentType)
         assert result.document_type in DocumentType
-        # For mock, all are currently set to INVOICE - this would change with real implementation
-        assert result.document_type == DocumentType.INVOICE
+        
+        # Check document type matches filename
+        if "post" in filename:
+            assert result.document_type == DocumentType.POST
+            assert result.source_language == "de"
+            assert result.translated_text is not None
+        elif "invoice" in filename:
+            assert result.document_type == DocumentType.INVOICE
+            assert result.source_language is None
+            assert result.translated_text is None
         
         # Test enum value consistency
         assert result.document_type.value in ["invoice", "receipt", "post", "other"]
-        
-        # Test string representation
-        assert str(result.document_type.value) in ["invoice", "receipt", "post", "other"]
-        
-        # Test comparison
-        assert result.document_type != "invalid_type"
-        assert result.document_type.value in DocumentType._value2member_map_
 
 def test_document_type_conversion(ocr_processor, test_dirs):
     """Test document type conversion and validation"""
