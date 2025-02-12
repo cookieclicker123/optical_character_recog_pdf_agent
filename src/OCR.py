@@ -13,6 +13,7 @@ import logging
 from google.cloud import translate_v2 as translate
 from dotenv import load_dotenv
 import os
+import re
 
 from .data_model import OCRResult, ProcessingStatus, DocumentType, OcrFn
 
@@ -66,11 +67,16 @@ def process_text_with_translation(
         )
         
         try:
+            # Clean and preprocess text before translation
+            cleaned_text = preprocess_financial_document(source_text)
+            logger.debug(f"Original text:\n{source_text}")
+            logger.debug(f"Preprocessed text:\n{cleaned_text}")
+            
             # Verify language
-            detected_lang = detect(source_text)
+            detected_lang = detect(cleaned_text)
             if detected_lang == 'de':
-                # Translate to English
-                translated_text, translation_conf = translator.translate(source_text)
+                # Translate preprocessed text
+                translated_text, translation_conf = translator.translate(cleaned_text)
                 return source_text, detected_lang, translated_text, translation_conf
             else:
                 # If not German, try English OCR
@@ -283,3 +289,32 @@ def setup_ocr_pipeline(
             )
     
     return process_document 
+
+def preprocess_financial_document(text: str) -> str:
+    """Clean and format financial document text"""
+    
+    # 1. Protect financial identifiers
+    protected_patterns = [
+        (r'(IBAN\s*[A-Z0-9\s]+)', r' \1 '),  # IBANs
+        (r'(BIC\s*[A-Z0-9]+)', r' \1 '),     # BICs
+        (r'(VAT\s*[A-Z0-9]+)', r' \1 '),     # VAT numbers
+        (r'(\d{2}/\d{3}/\d{5})', r' \1 '),   # Tax reference numbers
+    ]
+    
+    # 2. Clean formatting artifacts
+    cleanup_patterns = [
+        (r'[_—]{2,}', ' '),        # Repeated separators
+        (r'\s+', ' '),             # Multiple spaces
+    ]
+    
+    # 3. Structure preservation
+    structure_patterns = [
+        (r'(\d+[.,]\d{2})', r' \1 '),  # Currency amounts
+        (r'([A-Z]{2}\d{2}.*)', r' \1 ') # Reference numbers starting with country code
+    ]
+    
+    # Apply all patterns
+    for pattern, replacement in (protected_patterns + cleanup_patterns + structure_patterns):
+        text = re.sub(pattern, replacement, text)
+    
+    return text.strip() 

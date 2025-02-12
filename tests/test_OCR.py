@@ -1,7 +1,7 @@
 import pytest
 import logging
 from pathlib import Path
-from src.OCR import setup_ocr_pipeline
+from src.OCR import setup_ocr_pipeline, preprocess_financial_document
 from src.data_model import ProcessingStatus, DocumentType, OCRResult
 
 # Setup file logging
@@ -151,4 +151,4 @@ def test_google_translate_setup():
         
     except Exception as e:
         print("\n❌ Google Translate setup failed!")
-        raise Exception(f"Translation failed: {str(e)}") 
+        raise Exception(f"Translation failed: {str(e)}")
