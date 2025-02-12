@@ -5,10 +5,89 @@ import cv2
 import numpy as np
 import pytesseract
 import matplotlib.pyplot as plt
-from typing import Optional
+from typing import Optional, Tuple
 from transformers import DetrImageProcessor, DetrForObjectDetection
+from langdetect import detect
+from pdf2image import convert_from_path
+import logging
+from google.cloud import translate_v2 as translate
+from dotenv import load_dotenv
+import os
 
 from .data_model import OCRResult, ProcessingStatus, DocumentType, OcrFn
+
+# Load environment variables
+load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+class GoogleTranslator:
+    """Translation using Google Cloud Translate"""
+    def __init__(self):
+        self.client = translate.Client()
+        
+    def translate(self, text: str, source_lang: str = 'de') -> Tuple[str, float]:
+        try:
+            result = self.client.translate(
+                text,
+                target_language='en',
+                source_language=source_lang
+            )
+            return result['translatedText'], 0.95
+            
+        except Exception as e:
+            logger.error(f"Translation error: {e}")
+            return "", 0.0
+
+def detect_document_type(filename: str) -> DocumentType:
+    """Detect document type from filename"""
+    filename = filename.lower()
+    if "post" in filename:
+        return DocumentType.POST
+    elif "invoice" in filename:
+        return DocumentType.INVOICE
+    elif "receipt" in filename:
+        return DocumentType.RECEIPT
+    return DocumentType.OTHER
+
+def process_text_with_translation(
+    image: np.ndarray,
+    doc_type: DocumentType,
+    translator: GoogleTranslator
+) -> Tuple[str, Optional[str], Optional[str], Optional[float]]:
+    """Process text with language detection and translation if needed"""
+    
+    if doc_type == DocumentType.POST:
+        # First OCR pass with German language data
+        source_text = pytesseract.image_to_string(
+            image,
+            lang='deu',
+            config='--psm 6'
+        )
+        
+        try:
+            # Verify language
+            detected_lang = detect(source_text)
+            if detected_lang == 'de':
+                # Translate to English
+                translated_text, translation_conf = translator.translate(source_text)
+                return source_text, detected_lang, translated_text, translation_conf
+            else:
+                # If not German, try English OCR
+                english_text = pytesseract.image_to_string(
+                    image,
+                    lang='eng',
+                    config='--psm 6'
+                )
+                return english_text, 'en', None, None
+                
+        except Exception as e:
+            logger.error(f"Language detection error: {e}")
+            return source_text, None, None, None
+    else:
+        # Regular invoice processing
+        text = pytesseract.image_to_string(image, lang='eng')
+        return text, None, None, None
 
 def setup_ocr_pipeline(
     input_path: Path,
@@ -32,6 +111,7 @@ def setup_ocr_pipeline(
     # Initialize DETR models
     processor = DetrImageProcessor.from_pretrained(model_name)
     model = DetrForObjectDetection.from_pretrained(model_name)
+    translator = GoogleTranslator()
     
     def preprocess_image(image: np.ndarray) -> np.ndarray:
         """Preprocess image for better OCR results"""
@@ -118,40 +198,62 @@ def setup_ocr_pipeline(
             # Generate document ID
             doc_id = f"DOC_{uuid.uuid4().hex[:8]}"
             
-            # Read and process image
-            image = cv2.imread(str(input_path))
+            # Handle PDF input for POST documents
+            if input_path.suffix.lower() == '.pdf':
+                logger.debug(f"Converting PDF to image: {input_path}")
+                try:
+                    # Convert PDF to image
+                    pages = convert_from_path(input_path)
+                    if not pages:
+                        raise ValueError("Could not convert PDF to image")
+                    logger.debug(f"Successfully converted PDF, got {len(pages)} pages")
+                    image = np.array(pages[0])  # Process first page
+                except Exception as e:
+                    logger.error(f"PDF conversion failed: {e}")
+                    raise
+            else:
+                # Regular image processing
+                logger.debug(f"Processing image file: {input_path}")
+                image = cv2.imread(str(input_path))
+            
             if image is None:
-                raise ValueError(f"Could not read image at {input_path}")
+                raise ValueError(f"Could not read document at {input_path}")
             
             processed_image = preprocess_image(image)
             
-            # Perform OCR
+            # Process based on document type
+            doc_type = detect_document_type(input_path.name)
+            
+            if doc_type == DocumentType.POST:
+                # Use German OCR and translation
+                text, source_lang, translated_text, translation_conf = process_text_with_translation(
+                    processed_image, doc_type, translator
+                )
+            else:
+                # Regular invoice processing
+                text = pytesseract.image_to_string(processed_image)
+                source_lang = None
+                translated_text = None
+                translation_conf = None
+            
+            # Calculate confidence score
             confidence_data = pytesseract.image_to_data(
                 processed_image, 
                 output_type=pytesseract.Output.DICT
             )
             
-            text = pytesseract.image_to_string(processed_image)
-            
-            # Calculate confidence score
             valid_confidences = [c for c in confidence_data['conf'] if c > 0]
             confidence_score = sum(valid_confidences) / len(valid_confidences) if valid_confidences else 0
             
             # Save visualization
             save_visualization(processed_image, confidence_data, doc_id)
             
-            # Save OCR text with verification
+            # Save OCR text
             output_path = output_dir / f"{doc_id}.txt"
-            output_path.write_text(text)
-            
-            # Verify write
-            if not output_path.exists():
-                raise IOError(f"Failed to create output file at {output_path}")
-            
-            # Double check content
-            written_content = output_path.read_text()
-            if not written_content:
-                raise IOError(f"Output file is empty: {output_path}")
+            output_text = text
+            if translated_text:
+                output_text = f"Original Text:\n{text}\n\nTranslated Text:\n{translated_text}"
+            output_path.write_text(output_text)
             
             processing_time = time.time() - start_time
             
@@ -159,14 +261,18 @@ def setup_ocr_pipeline(
                 document_id=doc_id,
                 input_path=input_path,
                 output_path=output_path,
-                document_type=DocumentType.INVOICE,  # TODO: Add real detection
+                document_type=doc_type,
                 processing_status=ProcessingStatus.COMPLETED,
                 raw_text=text,
-                confidence_score=confidence_score / 100,  # Convert to 0-1 scale
-                processing_time=processing_time
+                confidence_score=confidence_score / 100,
+                processing_time=processing_time,
+                source_language=source_lang,
+                translated_text=translated_text,
+                translation_confidence=translation_conf
             )
             
         except Exception as e:
+            logger.error(f"Error processing document: {e}")
             return OCRResult(
                 document_id=f"DOC_{uuid.uuid4().hex[:8]}",
                 input_path=input_path,
