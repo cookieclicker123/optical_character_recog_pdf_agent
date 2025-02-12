@@ -69,6 +69,7 @@ class LLMResult(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     error_message: Optional[str] = Field(default=None, description="Error message if processing failed")
     tokens_used: Optional[int] = Field(default=None, description="Number of tokens used in LLM processing")
+    document_type: DocumentType = Field(default=DocumentType.OTHER, description="Type of document processed")
     
     class Config:
         arbitrary_types_allowed = True
