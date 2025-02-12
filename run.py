@@ -56,8 +56,8 @@ class OCRRunner:
             print(f"❌ Failed to create {venv_type} environment: {e}")
             return False
 
-    def run_pipeline(self, venv_type: str, input_dir: Path, output_dir: Path, compare: bool = False):
-        """Run the OCR pipeline tests in the appropriate environment"""
+    def run_pipeline(self, venv_type: str, input_dir: Path, output_dir: Path, mode: str = 'test', compare: bool = False):
+        """Run the OCR pipeline in the appropriate environment with specified mode"""
         venv_path = self.get_venv_path(venv_type)
         python_path = venv_path / ('Scripts' if sys.platform == 'win32' else 'bin') / 'python'
         pytest_path = venv_path / ('Scripts' if sys.platform == 'win32' else 'bin') / 'pytest'
@@ -68,9 +68,32 @@ class OCRRunner:
                 return
 
         try:
-            print(f"\n🚀 Running {venv_type} tests...")
-            
-            if venv_type == 'tesseract':
+            if venv_type == 'mllm':
+                print(f"\n🚀 Running MLLM {mode}...")
+                
+                if mode == 'test':
+                    # Run MLLM test files
+                    test_files = [
+                        'tests/test_data_model.py',
+                        'tests/test_mock_OCR.py'
+                    ]
+                    
+                    for test_file in test_files:
+                        test_path = self.base_dir / test_file
+                        if test_path.exists():
+                            print(f"\nRunning {test_file}...")
+                            subprocess.run([
+                                str(pytest_path),
+                                str(test_path),
+                                '-v'  # verbose output
+                            ], check=True)
+                        else:
+                            print(f"⚠️ Test file not found: {test_file}")
+                
+                elif mode in ['cli', 'api']:
+                    print(f"ℹ️ MLLM {mode} implementation not yet available")
+                
+            elif venv_type == 'tesseract':
                 # Change to the tesseract implementation directory
                 implementation_dir = self.base_dir / 'examples' / 'PyTesseract_Google_Translate_implementation'
                 
@@ -98,14 +121,8 @@ class OCRRunner:
                     else:
                         print(f"⚠️ Test file not found: {test_file}")
                 
-            else:
-                # MLLM implementation tests (when they exist)
-                print("ℹ️ MLLM implementation tests not yet available")
-
-            print(f"✅ {venv_type} tests completed")
+            print(f"✅ {venv_type} {mode} completed")
             
-        except FileNotFoundError as e:
-            print(f"❌ Implementation not found: {e}")
         except subprocess.CalledProcessError as e:
             print(f"❌ Test execution failed: {e}")
         except Exception as e:
@@ -143,6 +160,10 @@ def main():
     run_parser.add_argument('implementation', 
                           choices=['tesseract', 'mllm', 'compare'],
                           help='Choose implementation or compare both')
+    run_parser.add_argument('--mode',
+                          choices=['test', 'cli', 'api'],
+                          default='test',
+                          help='Mode to run (test, cli, or api)')
     run_parser.add_argument('--input-dir', type=Path, required=True)
     run_parser.add_argument('--output-dir', type=Path, required=True)
 
@@ -163,7 +184,7 @@ def main():
         if args.implementation == 'compare':
             runner.run_comparison(args.input_dir, args.output_dir)
         else:
-            runner.run_pipeline(args.implementation, args.input_dir, args.output_dir)
+            runner.run_pipeline(args.implementation, args.input_dir, args.output_dir, mode=args.mode)
 
     elif args.command == 'cleanup':
         runner.cleanup_venvs()
