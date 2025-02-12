@@ -1,26 +1,9 @@
-# OCR on unstructured Documents
-
-## Project Vision: Goals + Purpose
-
-vision.
-
-## Design principles
+# OCR on unstructured Documents Using Detr, PyTesseract and Google Translate
 
 
-
-## Rough Repo Structure
-
+## Observations of this example
 
 
-## Development roadmap
-
-
-
-## Open Source Everything
-
-
-
-## Initial Setup
 
 ```bash
 git clone ...
