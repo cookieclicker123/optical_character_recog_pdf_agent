@@ -5,3 +5,4 @@ __pycache__
 .pytest_cache
 fixtures
 .DS_Store
+google-translate-key.json
