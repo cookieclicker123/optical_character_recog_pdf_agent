@@ -49,6 +49,24 @@ def sample_ocr_result(test_dirs):
         processing_time=0.5
     )
 
+@pytest.fixture
+def sample_post_ocr_result(test_dirs):
+    """Create a sample POST document OCR result"""
+    ocr_dir, _ = test_dirs
+    ocr_file = ocr_dir / "POST_12345678.txt"
+    ocr_file.write_text("Sample POST document text with tax notice details")
+    
+    return OCRResult(
+        document_id="POST_12345678",
+        input_path=Path("original.pdf"),
+        output_path=ocr_file,
+        document_type=DocumentType.POST,
+        processing_status=ProcessingStatus.COMPLETED,
+        raw_text="Sample POST text",
+        confidence_score=0.95,
+        processing_time=0.5
+    )
+
 def test_factory_function_setup(test_dirs):
     """Test factory function creates directory and returns LLMFn"""
     _, json_dir = test_dirs
@@ -161,3 +179,14 @@ def test_multiple_documents(llm_processor, sample_ocr_result, test_dirs):
     
     assert all(r.processing_status == LLMStatus.COMPLETED for r in results)
     assert len({r.document_id for r in results}) == 3  # Unique IDs 
+
+def test_post_document_processing(llm_processor, sample_post_ocr_result):
+    """Test processing of POST documents"""
+    result = llm_processor(sample_post_ocr_result)
+    
+    assert result.processing_status == LLMStatus.COMPLETED
+    assert result.document_type == DocumentType.POST
+    assert "document_identification" in result.json_content
+    assert "tax_office_information" in result.json_content
+    assert "financial_details" in result.json_content
+    assert "banking_information" in result.json_content 

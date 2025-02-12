@@ -8,11 +8,13 @@ from .data_model import (
     LLMResult,
     LLMBatch,
     LLMStatus,
-    LLMFn
+    LLMFn,
+    DocumentType
 )
 from .llms.groq import create_groq_client, process_with_groq
 from .OCR import setup_ocr_pipeline
 from .prompts.invoice_extraction_prompt import INVOICE_SYSTEM_PROMPT
+from .prompts.post_extraction_prompt import POST_SYSTEM_PROMPT
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -74,24 +76,54 @@ async def setup_groq_pipeline(
                 )
                 ocr_result = ocr_fn(input_data)
                 
+                # Select appropriate system prompt based on document type
+                system_prompt = POST_SYSTEM_PROMPT if ocr_result.document_type == DocumentType.POST else INVOICE_SYSTEM_PROMPT
+                logger.debug(f"Using {ocr_result.document_type.value} prompt")
+                
                 # Process through Groq
                 return await process_with_groq(
                     client=client,
                     config=config,
                     ocr_input=ocr_result,
                     json_output_dir=json_output_dir,
-                    system_prompt=INVOICE_SYSTEM_PROMPT
+                    system_prompt=system_prompt
                 )
             
             # Case 2: Pre-processed OCR data
             logger.debug(f"Processing pre-processed OCR data")
-            return await process_with_groq(
-                client=client,
-                config=config,
-                ocr_input=input_data,
-                json_output_dir=json_output_dir,
-                system_prompt=INVOICE_SYSTEM_PROMPT
-            )
+            
+            # Handle both single OCRResult and OCRBatch
+            if isinstance(input_data, OCRBatch):
+                # Process batch of documents
+                results = []
+                for ocr_result in input_data.results:
+                    system_prompt = POST_SYSTEM_PROMPT if ocr_result.document_type == DocumentType.POST else INVOICE_SYSTEM_PROMPT
+                    result = await process_with_groq(
+                        client=client,
+                        config=config,
+                        ocr_input=ocr_result,
+                        json_output_dir=json_output_dir,
+                        system_prompt=system_prompt
+                    )
+                    results.append(result)
+                return LLMBatch(
+                    batch_id=input_data.batch_id,
+                    results=results,
+                    total_documents=len(results),
+                    processed_documents=len(results),
+                    status=LLMStatus.COMPLETED
+                )
+            else:
+                # Single document processing
+                system_prompt = POST_SYSTEM_PROMPT if input_data.document_type == DocumentType.POST else INVOICE_SYSTEM_PROMPT
+                logger.debug(f"Using {input_data.document_type.value} prompt")
+                return await process_with_groq(
+                    client=client,
+                    config=config,
+                    ocr_input=input_data,
+                    json_output_dir=json_output_dir,
+                    system_prompt=system_prompt
+                )
             
         except Exception as e:
             logger.error(f"Error in process_documents: {str(e)}", exc_info=True)

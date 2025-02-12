@@ -146,7 +146,8 @@ async def process_with_groq(
                 input_path=ocr_result.output_path,
                 output_path=json_output_dir / f"{ocr_result.document_id}_error.json",
                 processing_status=LLMStatus.FAILED,
-                error_message=str(e)
+                error_message=str(e),
+                document_type=ocr_result.document_type
             )
     
     # Handle single document

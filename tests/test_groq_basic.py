@@ -7,12 +7,13 @@ from src.llms.groq import create_groq_client, process_with_groq
 from src.data_model import (
     OCRResult,
     ProcessingStatus,
-    DocumentType
+    DocumentType,
+    LLMStatus
 )
 
 @pytest.mark.asyncio
 async def test_groq_basic_connectivity():
-    """Test basic Groq API connectivity and logging"""
+    """Test basic Groq API connectivity and processing"""
     # Setup logging
     log_file = Path("debug_groq.log")
     if log_file.exists():
@@ -24,54 +25,62 @@ async def test_groq_basic_connectivity():
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
     
-    # Test file paths
+    # Test directories
     fixtures_dir = Path("./tests/fixtures")
     ocr_txt_dir = fixtures_dir / "ocr_txt_files"
     json_output_dir = fixtures_dir / "json_output"
     
-    # Verify OCR text file exists
-    ocr_files = list(ocr_txt_dir.glob("*.txt"))
-    assert len(ocr_files) > 0, "No OCR text files found in fixtures"
+    # Test both POST and invoice documents
+    for doc_type in [DocumentType.INVOICE, DocumentType.POST]:
+        # Get appropriate test file
+        test_files = list((ocr_txt_dir / doc_type.value).glob("*.txt"))
+        assert len(test_files) > 0, f"No {doc_type.value} test files found"
+        
+        test_file = test_files[0]
+        logger.debug(f"Testing {doc_type.value} with file: {test_file}")
+        
+        content = test_file.read_text()
+        logger.debug(f"File content (first 100 chars): {content[:100]}")
+        
+        # Create Groq client
+        client, config = await create_groq_client()
+        logger.debug("Created Groq client")
+        
+        # Create test OCR result
+        ocr_result = OCRResult(
+            document_id=f"TEST_{doc_type.value.upper()}",
+            input_path=fixtures_dir / f"data/{doc_type.value}.pdf",
+            output_path=test_file,
+            document_type=doc_type,
+            processing_status=ProcessingStatus.COMPLETED,
+            raw_text=content
+        )
+        
+        # Process document
+        result = await process_with_groq(
+            client=client,
+            config=config,
+            ocr_input=ocr_result,
+            json_output_dir=json_output_dir
+        )
+        
+        logger.debug(f"Process result: {result}")
+        
+        # Verify output
+        assert result.processing_status == LLMStatus.COMPLETED
+        assert result.json_content is not None
+        assert result.document_type == doc_type
+        
+        # Verify expected fields based on document type
+        if doc_type == DocumentType.POST:
+            assert "document_identification" in result.json_content
+            assert "tax_office_information" in result.json_content
+        else:
+            assert "invoice_details" in result.json_content
+            assert "amounts" in result.json_content
+        
+    # Verify log file
+    assert log_file.exists()
+    assert log_file.read_text()
     
-    test_file = ocr_files[0]
-    logger.debug(f"Testing with OCR file: {test_file}")
-    
-    # Read content
-    content = test_file.read_text()
-    logger.debug(f"File content (first 100 chars): {content[:100]}")
-    assert content, "OCR file is empty"
-    
-    # Test API connection
-    client, config = await create_groq_client()
-    logger.debug("Created Groq client")
-    
-    # Create simple test OCR result
-    ocr_result = OCRResult(
-        document_id="TEST_DOC",
-        input_path=fixtures_dir / "data/invoice.png",
-        output_path=test_file,
-        document_type=DocumentType.INVOICE,
-        processing_status=ProcessingStatus.COMPLETED,
-        raw_text=content
-    )
-    
-    # Simple system prompt for testing
-    test_prompt = "Extract invoice information and return as JSON."
-    
-    # Process single document
-    result = await process_with_groq(
-        client=client,
-        config=config,
-        ocr_input=ocr_result,
-        json_output_dir=json_output_dir,
-        system_prompt=test_prompt
-    )
-    
-    logger.debug(f"Process result: {result}")
-    
-    # Verify log file was created and has content
-    assert log_file.exists(), "Log file wasn't created"
-    log_content = log_file.read_text()
-    assert log_content, "Log file is empty"
-    
-    return result  # For manual inspection if needed 
+    return result 
