@@ -31,6 +31,10 @@ class OCRResult(BaseModel):
     processing_time: Optional[float] = Field(default=None, description="Time taken for OCR in seconds")
     created_at: datetime = Field(default_factory=datetime.now)
     error_message: Optional[str] = Field(default=None, description="Error message if processing failed")
+    # New fields for translation
+    source_language: Optional[str] = Field(default=None, description="Detected source language")
+    translated_text: Optional[str] = Field(default=None, description="Translated text if needed")
+    translation_confidence: Optional[float] = Field(default=None, description="Translation confidence score")
 
     class Config:
         arbitrary_types_allowed = True
