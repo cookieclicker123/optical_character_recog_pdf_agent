@@ -26,7 +26,7 @@ vision.
 git clone ...
 cd ocr_on_unstructured_documents
 
-
+brew install poppler
 # Run single pipeline for tesseract
 python run.py run tesseract --input-dir ./input --output-dir ./output
 # Run single pipeline for mllm tests
@@ -36,6 +36,7 @@ python run.py run compare --input-dir ./input --output-dir ./output
 
 touch .env
 GROQ_API_KEY='your-api-key-here'
+GOOGLE_APPLICATION_CREDENTIALS=./google-translate-key.json
 ```
 
 ## Run The Tests
