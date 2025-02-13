@@ -4,7 +4,7 @@ import uuid
 from .data_model import VisionResult, ProcessingStatus, DocumentType, VisionFn
 from .tools.vision_tool import setup_vision_tool
 from .prompts.post_prompts import EXTRACT_PROMPT
-from utils.config import get_groq_config
+from utils.config import get_openai_config
 
 def setup_vision_pipeline(input_dir: Path, output_dir: Path) -> VisionFn:
     """Factory function that returns a Vision processing function
@@ -21,7 +21,7 @@ def setup_vision_pipeline(input_dir: Path, output_dir: Path) -> VisionFn:
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Setup vision tool
-    vision_tool = setup_vision_tool(get_groq_config())
+    vision_tool = setup_vision_tool(get_openai_config())
     
     def process_document(input_path: Path) -> VisionResult:
         """Process a single document and return Vision result"""

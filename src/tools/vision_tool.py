@@ -3,24 +3,25 @@ import time
 from typing import Dict, Any, List
 import base64
 from pdf2image import convert_from_path
-from groq import Groq
+from openai import OpenAI  # New import
+# from groq import Groq  # Commented out
 from ..data_model import VisionTool, VisionToolFn
-from utils.config import get_groq_config
+from utils.config import get_openai_config  # Changed from get_groq_config
 
 def setup_vision_tool(config: Dict[str, Any] = None) -> VisionToolFn:
     """Factory function that returns a vision tool processing function
     
     Args:
-        config: Optional custom configuration, defaults to groq_config
+        config: Optional custom configuration, defaults to openai_config
         
     Returns:
         Function that takes a Path and prompt and returns a VisionTool result
     """
     if config is None:
-        config = get_groq_config()
+        config = get_openai_config()
     
-    # Initialize Groq client
-    client = Groq(api_key=config['api_key'])
+    # Initialize OpenAI client using environment variable directly
+    client = OpenAI()  # OpenAI will automatically look for OPENAI_API_KEY env var
     
     def pdf_to_images(pdf_path: Path, output_dir: Path = None) -> List[Path]:
         """Convert PDF to images, one per page
@@ -94,7 +95,8 @@ def setup_vision_tool(config: Dict[str, Any] = None) -> VisionToolFn:
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}"
+                                "url": f"data:image/jpeg;base64,{base64_image}",
+                                "detail": config['quality']  # Added quality parameter
                             }
                         }
                     ]
@@ -113,7 +115,7 @@ def setup_vision_tool(config: Dict[str, Any] = None) -> VisionToolFn:
             model_response = response.choices[0].message.content
             tokens_used = response.usage.total_tokens
             
-            # Format response as markdown (assuming model returns structured text)
+            # Format response as markdown
             markdown_response = model_response
             
             # Calculate processing time

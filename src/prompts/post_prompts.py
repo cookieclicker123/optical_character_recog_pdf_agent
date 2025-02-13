@@ -1,12 +1,6 @@
-EXTRACT_PROMPT = """Extract and structure information from this German business letter.
-DO NOT translate - keep all extracted text in the original German.
-
-Extract and group together:
-- Sender information
-- Recipient information
-- Date
-- Subject line
-- Main content in detail
-- Closing formalities
-
-Format the response in clear markdown sections, maintaining all text in German.""" 
+EXTRACT_PROMPT = """Extract and structure ALL text visible in this German document.
+Format your response in clear markdown.
+Include every detail you can see.
+Maintain original German text exactly as written.
+We need the specific details not descriptions or summary as we are automating OCR for information grouping. 
+A spearate part of processing will do translation""" 
