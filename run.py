@@ -75,7 +75,9 @@ class OCRRunner:
                     # Run MLLM test files
                     test_files = [
                         'tests/test_data_model.py',
-                        'tests/test_mock_OCR.py'
+                        'tests/test_mock_OCR.py',
+                        'tests/test_vision_tool.py',
+                        'tests/test_OCR.py',
                     ]
                     
                     for test_file in test_files:
