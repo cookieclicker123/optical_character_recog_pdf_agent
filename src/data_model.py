@@ -18,6 +18,18 @@ class ProcessingStatus(Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 
+class VisionTool(BaseModel):
+    """Result from MLLM vision tool call"""
+    prompt: str = Field(..., description="Prompt sent to vision model")
+    response: str = Field(..., description="Raw response from vision model")
+    markdown: str = Field(..., description="Structured markdown output")
+    tokens_used: int = Field(..., ge=0, description="Tokens used in this tool call")
+    processing_time: float = Field(..., ge=0.0, description="Time taken for this tool call")
+    error_message: Optional[str] = Field(default=None, description="Error if tool call failed")
+    
+    class Config:
+        frozen = True
+
 class VisionResult(BaseModel):
     """Result of MLLM vision processing"""
     document_id: str = Field(
@@ -35,6 +47,10 @@ class VisionResult(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     error_message: Optional[str] = Field(default=None, description="Error message if processing failed")
     tokens_used: Optional[PositiveInt] = Field(default=None, description="Number of tokens used in MLLM processing")
+    vision_tool_calls: List[VisionTool] = Field(
+        default_factory=list,
+        description="List of vision tool calls made during processing"
+    )
     
     class Config:
         arbitrary_types_allowed = True
@@ -77,3 +93,4 @@ class JsonBatch(BaseModel):
 # Type hints for processing functions
 VisionFn = Callable[[Path], VisionResult]
 JsonFn = Callable[[VisionResult], JsonResult]
+VisionToolFn = Callable[[Path, str], VisionTool]
