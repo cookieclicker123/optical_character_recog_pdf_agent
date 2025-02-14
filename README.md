@@ -20,7 +20,9 @@ vision.
 
 
 
-## Initial Setup
+## Setup And pipeline run
+
+Test MLLM implementation and you will see in fixtures/data/post_docs/post_ocr_txt your txt documents with the extracted information.
 
 ```bash
 git clone ...
@@ -37,14 +39,4 @@ python run.py run compare --input-dir ./input --output-dir ./output
 touch .env
 GROQ_API_KEY='your-api-key-here'
 GOOGLE_APPLICATION_CREDENTIALS=./google-translate-key.json
-```
-
-## Run The Tests
-
-```bash
-pytest tests/test_mock_OCR.py
-pytest tests/test_OCR.py
-pytest tests/test_mock_llm_information_grouping.py
-pytest tests/test_llm_information_grouping.py
-pytest tests/test_groq_basic.py
 ```

@@ -90,7 +90,34 @@ class JsonBatch(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     status: ProcessingStatus = Field(default=ProcessingStatus.PENDING)
 
+class TranslationResult(BaseModel):
+    """Result of document translation"""
+    document_id: str = Field(..., description="Matching ID from vision result")
+    input_path: Path = Field(..., description="Path to source markdown file")
+    output_path: Path = Field(..., description="Path to translated output file")
+    source_language: str = Field(..., description="Source language code")
+    target_language: str = Field(..., description="Target language code")
+    processing_status: ProcessingStatus = Field(default=ProcessingStatus.PENDING)
+    translated_content: Optional[str] = Field(default=None, description="Translated markdown content")
+    processing_time: Optional[float] = Field(default=None, description="Time taken for translation")
+    created_at: datetime = Field(default_factory=datetime.now)
+    error_message: Optional[str] = Field(default=None, description="Error message if translation failed")
+    
+    class Config:
+        arbitrary_types_allowed = True
+        frozen = True
+
+class TranslationBatch(BaseModel):
+    """Batch of translations"""
+    batch_id: str = Field(..., description="Unique identifier for the batch")
+    results: List[TranslationResult] = Field(default_factory=list)
+    total_documents: int = Field(..., description="Total number of documents in batch")
+    processed_documents: int = Field(default=0)
+    created_at: datetime = Field(default_factory=datetime.now)
+    status: ProcessingStatus = Field(default=ProcessingStatus.PENDING)
+
 # Type hints for processing functions
 VisionFn = Callable[[Path], VisionResult]
 JsonFn = Callable[[VisionResult], JsonResult]
 VisionToolFn = Callable[[Path, str], VisionTool]
+TranslationFn = Callable[[Path], TranslationResult]
