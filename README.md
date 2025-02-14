@@ -1,6 +1,15 @@
 # OCR on Unstructured Documents
 
-## Project Vision: Goals + Purpose
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
+[![GPT-4V](https://img.shields.io/badge/GPT--4V-Vision-green.svg)](https://openai.com/gpt-4)
+[![Tesseract](https://img.shields.io/badge/Tesseract-OCR-blue.svg)](https://github.com/tesseract-ocr/tesseract)
+[![Google Translate](https://img.shields.io/badge/Google-Translate-blue.svg)](https://cloud.google.com/translate)
+[![Groq](https://img.shields.io/badge/Groq-LLM-orange.svg)](https://groq.com)
+[![JSON](https://img.shields.io/badge/JSON-Structured-lightgrey.svg)](https://www.json.org)
+[![PDF](https://img.shields.io/badge/PDF-Processing-red.svg)](https://poppler.freedesktop.org)
+[![Pydantic](https://img.shields.io/badge/Pydantic-v2-green.svg)](https://docs.pydantic.dev/latest/)
+[![Docker](https://img.shields.io/badge/Docker-Containerized-blue.svg)](https://www.docker.com)
 
 Automated extraction and structuring of information from multilingual documents using:
 - GPT-4 Vision for OCR and initial structuring
