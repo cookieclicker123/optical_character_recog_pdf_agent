@@ -78,7 +78,8 @@ class OCRRunner:
                         'tests/test_mock_OCR.py',
                         'tests/test_vision_tool.py',
                         'tests/test_OCR.py',
-                        'tests/test_translate.py'
+                        'tests/test_translate.py',
+                        'tests/test_json_grouping.py'
                     ]
                     
                     for test_file in test_files:

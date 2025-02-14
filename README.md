@@ -37,6 +37,7 @@ python run.py run mllm --mode test --input-dir ./input --output-dir ./output
 python run.py run compare --input-dir ./input --output-dir ./output
 
 touch .env
+OPENAI_API_KEY='your-api-key-here'
 GROQ_API_KEY='your-api-key-here'
 GOOGLE_APPLICATION_CREDENTIALS=./google-translate-key.json
 ```
