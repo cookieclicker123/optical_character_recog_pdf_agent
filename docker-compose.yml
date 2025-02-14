@@ -1,0 +1,13 @@
+services:
+  ocr:
+    build: .
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./.env:/app/.env
+      - ./google-translate-key.json:/app/google-translate-key.json
+    env_file:
+      - .env
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/google-translate-key.json
+    command: run mllm --mode test --input-dir /app/input --output-dir /app/output 
