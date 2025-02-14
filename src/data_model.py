@@ -118,6 +118,6 @@ class TranslationBatch(BaseModel):
 
 # Type hints for processing functions
 VisionFn = Callable[[Path], VisionResult]
-JsonFn = Callable[[VisionResult], JsonResult]
+JsonFn = Callable[[TranslationResult], JsonResult]
 VisionToolFn = Callable[[Path, str], VisionTool]
 TranslationFn = Callable[[Path], TranslationResult]
