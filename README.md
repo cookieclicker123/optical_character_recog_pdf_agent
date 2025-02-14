@@ -14,6 +14,7 @@ Automated extraction and structuring of information from multilingual documents 
 - Comprehensive error handling
 - Test-driven development
 - Modular pipeline architecture
+- Robust data model suitable for furthur development
 
 ## Repository Structure
 
@@ -51,7 +52,7 @@ OPENAI_API_KEY=your-openai-key
 GROQ_API_KEY=your-groq-key
 ```
 
-3. Google Cloud Translate credentials:
+3. **Google Cloud Translate credentials**:
 - Save as `google-translate-key.json` in root directory
 
 ### Using Docker (Recommended for Production)
